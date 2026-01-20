@@ -10,6 +10,7 @@ import { A } from "@solidjs/router";
 import videos from "../stores/videos";
 import type { Video } from "../api/videos/type";
 import LucideGithub from "~icons/lucide/github";
+import VirtualGrid from "../components/VirtualGrid";
 
 const Preview: VoidComponent<Video> = (video) => {
   const [loaded, setLoaded] = createSignal(false);
@@ -54,6 +55,13 @@ const Preview: VoidComponent<Video> = (video) => {
 export default function View() {
   const [filters, setFilters] = createSignal<Array<string>>([]);
 
+  const filtered = createMemo(() => {
+    if (filters().length === 0) return videos.everything;
+    return videos.everything.filter((video) =>
+      filters().includes(video.category),
+    );
+  });
+
   const toggle = (category: string): void => {
     if (filters().includes(category)) {
       setFilters((prev) => prev.filter((curr) => curr !== category));
@@ -61,13 +69,6 @@ export default function View() {
       setFilters((prev) => [...prev, category]);
     }
   };
-
-  const filtered = createMemo(() => {
-    if (filters().length === 0) return videos.everything;
-    return videos.everything.filter((video) =>
-      filters().includes(video.category),
-    );
-  });
 
   return (
     <div class="flex flex-col p-16 pt-24 gap-8">
@@ -106,9 +107,19 @@ export default function View() {
         </For>
       </div>
 
-      <div class="flex flex-wrap gap-6">
-        <For each={filtered()}>{(video) => <Preview {...video} />}</For>
-      </div>
+      <VirtualGrid
+        items={filtered()}
+        itemHeight={274}
+        itemWidth={400}
+        gap={24}
+        fallback={
+          <div class="w-full text-center opacity-50 py-10 absolute top-0 left-0">
+            No wallpapers found
+          </div>
+        }
+      >
+        {(video) => <Preview {...video} />}
+      </VirtualGrid>
     </div>
   );
 }
