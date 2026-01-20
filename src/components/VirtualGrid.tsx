@@ -5,14 +5,23 @@ import {
   onCleanup,
   onMount,
   Show,
+  createEffect,
   type JSX,
 } from "solid-js";
+import scroll from "../stores/scroll";
 
 export interface VirtualGridProps<T> {
   items: T[];
   itemHeight: number;
   itemWidth: number;
   gap: number;
+
+  /**
+   * Optional key used to persist/restore scroll position (window.scrollY)
+   * across navigations (e.g. home -> detail -> home).
+   */
+  scrollKey?: string;
+
   children: (item: T) => JSX.Element;
   fallback?: JSX.Element;
 }
@@ -25,8 +34,27 @@ export default function VirtualGrid<T>(props: VirtualGridProps<T>) {
   );
   const [scrollY, setScrollY] = createSignal(0);
 
+  // Restore scroll position on mount (best-effort). We do it in onMount so the DOM exists.
   onMount(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
+    const key = props.scrollKey;
+    if (key && typeof window !== "undefined") {
+      const saved = scroll.get(key, 0);
+      if (Number.isFinite(saved)) {
+        // Use rAF to avoid restoring too early while layout is still settling.
+        requestAnimationFrame(() => window.scrollTo(0, saved));
+      }
+    }
+
+    const handleScroll = () => {
+      const y = window.scrollY;
+      setScrollY(y);
+
+      const k = props.scrollKey;
+      if (k) {
+        scroll.set(k, y);
+      }
+    };
+
     const handleResize = () => setWindowHeight(window.innerHeight);
 
     window.addEventListener("resize", handleResize);
@@ -49,6 +77,23 @@ export default function VirtualGrid<T>(props: VirtualGridProps<T>) {
     onCleanup(() => {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("scroll", handleScroll);
+    });
+  });
+
+  // If the dataset changes (filters/search), keep the saved scroll position sane.
+  createEffect(() => {
+    props.items.length;
+    const key = props.scrollKey;
+    if (!key) return;
+
+    // After list changes, clamp any saved scrollY to current max scroll.
+    queueMicrotask(() => {
+      const doc = document.documentElement;
+      const maxY = Math.max(0, doc.scrollHeight - window.innerHeight);
+      const y = Math.min(window.scrollY, maxY);
+
+      scroll.set(key, y);
+      if (y !== window.scrollY) window.scrollTo(0, y);
     });
   });
 

@@ -108,6 +108,7 @@ export default function View() {
       </div>
 
       <VirtualGrid
+        scrollKey="home"
         items={filtered()}
         itemHeight={274}
         itemWidth={400}
