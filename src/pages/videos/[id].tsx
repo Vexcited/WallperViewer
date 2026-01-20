@@ -82,7 +82,7 @@ export default function View() {
           <div class="fixed bg-gradient-to-t from-black/50 to-50% to-transparent inset-0 z-5"></div>
 
           <div class="fixed inset-0 flex justify-center items-center flex-col z-10 gap-2">
-            <h1 class="text-6xl font-serif">{video().title}</h1>
+            <h1 class="text-6xl font-serif text-center">{video().title}</h1>
             <p class="uppercase tracking-1 opacity-75">{video().category}</p>
 
             <div class="flex gap-2 mt-6">
